@@ -1,0 +1,30 @@
+# Etapa 1: Construcción de la aplicación
+FROM golang:1.20 AS builder
+
+# Establecer el directorio de trabajo en el contenedor
+WORKDIR /app
+
+# Copiar los archivos go.mod y go.sum y descargamos las dependencias
+COPY go.mod go.sum ./
+RUN go mod tidy
+
+# Copiar el código fuente de la aplicación al contenedor
+COPY . .
+
+# Compilar la aplicación
+RUN go build -o api .
+
+# Etapa 2: Imagen de producción
+FROM debian:bullseye-slim
+
+# Instalar las dependencias necesarias (como ca-certificates para conexiones HTTPS)
+RUN apt-get update && apt-get install -y ca-certificates
+
+# Copiar el binario de la etapa anterior
+COPY --from=builder /app/api /usr/local/bin/api
+
+# Establecer el puerto donde la aplicación escuchará
+EXPOSE 80
+
+# Comando para ejecutar la aplicación
+CMD ["api"]
